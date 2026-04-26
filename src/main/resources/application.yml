@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/lookeng?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useSSL=false
+    username: root
+    password: "0307"
+
+
+  jpa:
+    open-in-view: true
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+
+
+logging:
+  level:
+    org.hibernate.SQL: debug
