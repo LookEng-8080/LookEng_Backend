@@ -65,4 +65,29 @@ public class AuthService {
                 .role(user.getRole().name())
                 .build();
     }
+
+    @Transactional
+    public SignupResponseDto adminSignup(SignupRequestDto request) {
+        // 1. 중복 이메일 검증
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new DuplicateEmailException("이미 사용 중인 이메일입니다.");
+        }
+
+        // 2. 관리자 엔티티 생성 (비밀번호 암호화 동일하게 적용)
+        User admin = User.builder()
+                .email(request.getEmail())
+                .passwordHash(passwordEncoder.encode(request.getPassword())) // 🌟 암호화 유지
+                .nickname(request.getNickname())
+                .role(Role.ADMIN) //
+                .build();
+
+        User savedAdmin = userRepository.save(admin);
+
+        // 3. 응답 DTO 변환
+        return SignupResponseDto.builder()
+                .userId(savedAdmin.getId())
+                .email(savedAdmin.getEmail())
+                .role(savedAdmin.getRole().name())
+                .build();
+    }
 }

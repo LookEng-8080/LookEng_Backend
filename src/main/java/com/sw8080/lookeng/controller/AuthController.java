@@ -34,6 +34,16 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new ApiResponse<>(true, "회원가입이 완료되었습니다.", response));
     }
+    @PostMapping("/admin/signup")
+    public ResponseEntity<ApiResponse<SignupResponseDto>> adminSignup(
+            @Valid @RequestBody SignupRequestDto request) {
+
+        // 관리자 가입 서비스 호출
+        SignupResponseDto response = authService.adminSignup(request);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(true, "관리자 회원가입이 완료되었습니다.", response));
+    }
     @PostMapping("/login")
     public ResponseEntity<CommonResponse<LoginResponseDto>> login(
             @Valid @RequestBody LoginRequestDto request,
@@ -47,6 +57,7 @@ public class AuthController {
         session.setAttribute("LOGIN_USER_ID", response.getUserId());
         session.setAttribute("LOGIN_USER_ROLE", response.getRole());
         session.setMaxInactiveInterval(1800); // 세션 만료 30분 설정 (선택사항)
+
 
         // 3. 200 OK 응답 반환
         return ResponseEntity.ok(new CommonResponse<>(true, "로그인 성공", response));
