@@ -29,12 +29,13 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
 
                 .authorizeHttpRequests(auth -> auth
-                        // 회원가입, 로그인은 누구나 접근 가능
-                        .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login").permitAll()
-                        // 그 외 API는 인증(세션) 필요 (개발 편의를 위해 당분간 permitAll()로 두셔도 됩니다)
+                        // auth와 error, 그리고 단어(words) API까지 스프링 시큐리티는 무사통과!
+                        .requestMatchers("/api/v1/auth/**", "/error", "/api/v1/words/**").permitAll()
+
+                        // (만약 앞으로 귀찮다면 아예 .anyRequest().permitAll() 로 다 열어두고,
+                        // 지금처럼 컨트롤러에서 세션을 검사하는 방식을 유지하셔도 됩니다!)
                         .anyRequest().authenticated()
                 );
-
         return http.build();
     }
 }
