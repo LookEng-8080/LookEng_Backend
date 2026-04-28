@@ -41,7 +41,7 @@ public class WordController {
 
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(new ApiResponse<>(false, "접근 권한이 없습니다.", null));
+                    .body(new ApiResponse<>(false, "관리자 접근 권한이 없습니다.", null));
         }
 
         // 3. 비즈니스 로직 실행
@@ -76,7 +76,7 @@ public class WordController {
 
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(new ApiResponse<>(false, "접근 권한이 없습니다.", null));
+                    .body(new ApiResponse<>(false, "관리자 접근 권한이 없습니다.", null));
         }
 
         // 4. 비즈니스 로직 실행
@@ -104,7 +104,7 @@ public class WordController {
 
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(new ApiResponse<>(false, "접근 권한이 없습니다.", null));
+                    .body(new ApiResponse<>(false, "관리자 접근 권한이 없습니다.", null));
         }
 
         // 3. 비즈니스 로직(삭제) 실행

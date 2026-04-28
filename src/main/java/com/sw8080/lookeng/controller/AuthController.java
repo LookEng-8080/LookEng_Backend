@@ -1,6 +1,7 @@
 package com.sw8080.lookeng.controller;
 
 import com.sw8080.lookeng.ApiResponse;
+import com.sw8080.lookeng.exception.UnauthorizedException;
 import com.sw8080.lookeng.dto.request.LoginRequestDto;
 import com.sw8080.lookeng.dto.request.SignupRequestDto;
 import com.sw8080.lookeng.dto.response.CommonResponse;
@@ -70,7 +71,7 @@ public class AuthController {
         // 2. 명세서 에러 응답(401): 세션이 없거나 이미 로그아웃된 상태라면 에러 발생
         if (session == null || session.getAttribute("LOGIN_USER_ID") == null) {
             // 우리가 GlobalExceptionHandler에 설정해둔 401 에러를 발생시킵니다.
-            throw new IllegalArgumentException("세션이 없습니다. (미로그인 상태)");
+            throw new UnauthorizedException("세션이 없습니다. (미로그인 상태)");
         }
 
         // 3. 세션 무효화 (출입증 폐기)
