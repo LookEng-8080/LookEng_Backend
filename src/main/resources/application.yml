@@ -1,18 +1,36 @@
 spring:
+  profiles:
+    active: dev
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-
-
   jpa:
-    open-in-view: true
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
 
-
 logging:
   level:
     org.hibernate.SQL: debug
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
