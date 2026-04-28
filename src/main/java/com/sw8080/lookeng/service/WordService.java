@@ -1,6 +1,9 @@
 package com.sw8080.lookeng.service;
 
 import com.sw8080.lookeng.dto.WordItemDto;
+import com.sw8080.lookeng.exception.BadRequestException;
+import com.sw8080.lookeng.exception.DuplicateException;
+import com.sw8080.lookeng.exception.NotFoundException;
 import com.sw8080.lookeng.dto.request.WordCreateRequestDto;
 import com.sw8080.lookeng.dto.response.WordDetailResponseDto;
 import com.sw8080.lookeng.dto.response.WordListResponseDto;
@@ -29,13 +32,12 @@ public class WordService {
     public WordResponseDto createWord(WordCreateRequestDto request) {
         // 1. 단어 개수 50개 제한 로직 추가
         if (wordRepository.count() >= 50) {
-            // 프로젝트 예외 처리 방식에 맞춰 400 Bad Request 또는 적절한 상태 코드로 응답하도록 변경하셔도 됩니다.
-            throw new IllegalStateException("단어장에는 최대 50개의 단어만 추가할 수 있습니다.");
+            throw new BadRequestException("단어장에는 최대 50개의 단어만 추가할 수 있습니다.");
         }
 
         // 2. 명세서 409 에러: 동일 영단어 존재 여부 확인
         if (wordRepository.existsByEnglish(request.getEnglish())) {
-            throw new IllegalStateException("이미 존재하는 영단어입니다.");
+            throw new DuplicateException("이미 존재하는 영단어입니다.");
         }
 
         // 3. 단어 엔티티 생성 및 저장
@@ -56,12 +58,12 @@ public class WordService {
     public WordResponseDto updateWord(Long id, WordUpdateRequestDto request) {
         // 1. 명세서 404 에러: 수정할 단어가 존재하는지 조회
         Word word = wordRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("해당 단어를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("해당 단어를 찾을 수 없습니다."));
 
         // 2. 명세서 409 에러: 영단어(english) 수정 요청이 들어왔고, 그 값이 기존과 다를 경우 중복 검사
         if (request.getEnglish() != null && !request.getEnglish().equals(word.getEnglish())) {
             if (wordRepository.existsByEnglishAndIdNot(request.getEnglish(), id)) {
-                throw new IllegalStateException("이미 존재하는 영단어입니다."); // GlobalExceptionHandler에서 409 처리
+                throw new DuplicateException("이미 존재하는 영단어입니다.");
             }
         }
 
@@ -82,7 +84,7 @@ public class WordService {
     public void deleteWord(Long id) {
         // 1. 명세서 404 에러: 삭제할 단어가 존재하는지 조회
         Word word = wordRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("해당 단어를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("해당 단어를 찾을 수 없습니다."));
 
         // 2. 단어 삭제
         wordRepository.delete(word);
@@ -122,7 +124,7 @@ public class WordService {
     public WordDetailResponseDto getWordDetail(Long id, Long userId) {
         // 1. 명세서 404 에러: 조회할 단어가 존재하는지 확인
         Word word = wordRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("해당 단어를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("해당 단어를 찾을 수 없습니다."));
 
         // 2. 나중에 USER_WORD 테이블이 생기면 연동할 부분 (지금은 임시로 false)
         boolean isMemorized = false;

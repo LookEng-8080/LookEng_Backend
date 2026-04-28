@@ -1,6 +1,9 @@
 package com.sw8080.lookeng.service;
 
 import com.sw8080.lookeng.dto.TestHistoryItemDto;
+import com.sw8080.lookeng.exception.BadRequestException;
+import com.sw8080.lookeng.exception.ForbiddenException;
+import com.sw8080.lookeng.exception.NotFoundException;
 import com.sw8080.lookeng.dto.request.TestAnswerRequestDto;
 import com.sw8080.lookeng.dto.request.TestFinishRequestDto;
 import com.sw8080.lookeng.dto.request.TestSessionRequestDto;
@@ -36,9 +39,13 @@ public class TestSessionService {
 
     public TestSessionResponseDto startSession(Long userId, TestSessionRequestDto request) {
         // 1. 전체 단어 중 랜덤으로 n개 추출
+        if (request.getTotalCount() <= 0 || request.getTotalCount() > 50) {
+            throw new BadRequestException("개수가 잘못되었습니다. (1~50 사이로 입력해주세요)");
+        }
+
         List<Word> allWords = wordRepository.findAll();
         if (allWords.size() < request.getTotalCount()) {
-            throw new IllegalArgumentException("전체 단어 수가 요청한 수보다 적습니다.");
+            throw new BadRequestException("전체 단어 수가 요청한 수보다 적습니다.");
         }
 
         Collections.shuffle(allWords);
@@ -75,15 +82,15 @@ public class TestSessionService {
 
         // 1. 세션 조회 및 권한 검사 (명세서 403, 404 에러 처리)
         TestSession session = testSessionRepository.findById(sessionId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 세션입니다."));
+                .orElseThrow(() -> new NotFoundException("존재하지 않는 세션입니다."));
 
         if (!session.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("본인의 테스트 세션에만 접근할 수 있습니다.");
+            throw new ForbiddenException("본인의 테스트 세션에만 접근할 수 있습니다.");
         }
 
         // 2. 단어 조회
         Word word = wordRepository.findById(request.getWordId())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 단어입니다."));
+                .orElseThrow(() -> new NotFoundException("존재하지 않는 단어입니다."));
 
         // 3. 정답 판정 (대소문자 무시, 앞뒤 공백 제거)
         String trimmedInput = request.getUserInput() != null ? request.getUserInput().trim() : "";
@@ -133,13 +140,13 @@ public class TestSessionService {
     public TestFinishResponseDto finishSession(Long userId, Long sessionId, TestFinishRequestDto request) {
         // 1. 세션 조회 및 권한/유효성 검사
         TestSession session = testSessionRepository.findById(sessionId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 세션입니다."));
+                .orElseThrow(() -> new NotFoundException("존재하지 않는 세션입니다."));
 
         if (!session.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("본인의 테스트 세션에만 접근할 수 있습니다.");
+            throw new ForbiddenException("본인의 테스트 세션에만 접근할 수 있습니다.");
         }
         if (request.getDurationSec() == null || request.getDurationSec() <= 0) {
-            throw new IllegalArgumentException("올바른 소요 시간을 입력해주세요.");
+            throw new BadRequestException("올바른 소요 시간을 입력해주세요.");
         }
 
         // 2. 세션 종료 정보 업데이트
