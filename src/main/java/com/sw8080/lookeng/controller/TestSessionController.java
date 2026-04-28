@@ -54,22 +54,8 @@ public class TestSessionController {
         }
 
         Long userId = (Long) session.getAttribute("LOGIN_USER_ID");
-
-        try {
-            // 2. 비즈니스 로직 실행
-            TestAnswerResponseDto data = testSessionService.submitAnswer(userId, sessionId, request);
-            return ResponseEntity.ok(new ApiResponse<>(true, "답안이 제출되었습니다.", data));
-
-        } catch (IllegalArgumentException e) {
-            // 3. 권한(403) 또는 데이터 없음(404) 에러를 간편하게 400으로 통일하여 처리
-            // (실무에서는 GlobalExceptionHandler를 통해 세밀하게 나눕니다)
-            if (e.getMessage().contains("본인의 테스트 세션")) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new ApiResponse<>(false, e.getMessage(), null));
-            }
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ApiResponse<>(false, e.getMessage(), null));
-        }
+        TestAnswerResponseDto data = testSessionService.submitAnswer(userId, sessionId, request);
+        return ResponseEntity.ok(new ApiResponse<>(true, "답안이 제출되었습니다.", data));
     }
     @PostMapping("/{sessionId}/finish")
     public ResponseEntity<ApiResponse<TestFinishResponseDto>> finishSession(
@@ -85,25 +71,8 @@ public class TestSessionController {
         }
 
         Long userId = (Long) session.getAttribute("LOGIN_USER_ID");
-
-        try {
-            // 2. 비즈니스 로직 실행
-            TestFinishResponseDto data = testSessionService.finishSession(userId, sessionId, request);
-            return ResponseEntity.ok(new ApiResponse<>(true, "테스트가 종료되었습니다.", data));
-
-        } catch (IllegalArgumentException e) {
-            // 3. 에러 핸들링 (400, 403, 404)
-            if (e.getMessage().contains("본인")) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new ApiResponse<>(false, e.getMessage(), null));
-            }
-            if (e.getMessage().contains("소요 시간")) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(new ApiResponse<>(false, e.getMessage(), null));
-            }
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ApiResponse<>(false, e.getMessage(), null));
-        }
+        TestFinishResponseDto data = testSessionService.finishSession(userId, sessionId, request);
+        return ResponseEntity.ok(new ApiResponse<>(true, "테스트가 종료되었습니다.", data));
     }
     @GetMapping
     public ResponseEntity<ApiResponse<TestHistoryResponseDto>> getTestHistory(
