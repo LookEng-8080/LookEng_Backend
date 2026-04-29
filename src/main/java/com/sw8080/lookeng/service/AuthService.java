@@ -50,7 +50,7 @@ public class AuthService {
     public LoginResponseDto login(LoginRequestDto request) {
         // 1. 이메일로 유저 찾기 (엔티티의 @SQLRestriction 덕분에 탈퇴한 회원은 자동 제외됨)
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("이메일 또는 비밀번호가 일치하지 않습니다.")); // 명세서의 401 에러를 위한 예외
+                .orElseThrow(() -> new UnauthorizedException("이메일 또는 비밀번호가 일치하지 않습니다."));
 
         // 2. 비밀번호 검증
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {

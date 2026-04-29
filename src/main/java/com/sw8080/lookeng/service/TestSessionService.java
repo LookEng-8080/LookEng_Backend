@@ -88,11 +88,20 @@ public class TestSessionService {
             throw new ForbiddenException("본인의 테스트 세션에만 접근할 수 있습니다.");
         }
 
-        // 2. 단어 조회
-        Word word = wordRepository.findById(request.getWordId())
-                .orElseThrow(() -> new NotFoundException("존재하지 않는 단어입니다."));
+        // 2. 완료된 세션 재제출 차단
+        if (session.isAllAnswered()) {
+            throw new BadRequestException("이미 완료된 테스트 세션입니다.");
+        }
 
-        // 3. 정답 판정 (대소문자 무시, 앞뒤 공백 제거)
+        // 3. 현재 문제 단어와 wordId 일치 검증
+        Word currentWord = session.getWords().get(session.getCurrentIndex());
+        if (!currentWord.getId().equals(request.getWordId())) {
+            throw new BadRequestException("현재 문제의 단어 ID와 일치하지 않습니다.");
+        }
+
+        Word word = currentWord;
+
+        // 4. 정답 판정 (대소문자 무시, 앞뒤 공백 제거)
         String trimmedInput = request.getUserInput() != null ? request.getUserInput().trim() : "";
         boolean isCorrect = word.getEnglish().equalsIgnoreCase(trimmedInput);
 
@@ -145,6 +154,11 @@ public class TestSessionService {
         if (!session.getUserId().equals(userId)) {
             throw new ForbiddenException("본인의 테스트 세션에만 접근할 수 있습니다.");
         }
+
+        if (session.isFinished()) {
+            throw new BadRequestException("이미 종료된 테스트 세션입니다.");
+        }
+
         if (request.getDurationSec() == null || request.getDurationSec() <= 0) {
             throw new BadRequestException("올바른 소요 시간을 입력해주세요.");
         }
