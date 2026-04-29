@@ -27,17 +27,26 @@ public class TestSession extends BaseTimeEntity {
     private int correctCount;
     private int durationSec;
 
-    @ManyToMany // 테스트에 사용될 단어들을 연결
+    @ManyToMany
     @JoinTable(name = "test_session_words")
+    @Builder.Default
     private List<Word> words = new ArrayList<>();
+
+    private boolean finished;
 
     public void submitAnswer(boolean isCorrect) {
         if (isCorrect) {
             this.correctCount++;
         }
-        this.currentIndex++; // 다음 문제로 넘어가기
+        this.currentIndex++;
     }
+
     public void finishTest(int durationSec) {
         this.durationSec = durationSec;
+        this.finished = true;
+    }
+
+    public boolean isAllAnswered() {
+        return this.currentIndex >= this.totalCount;
     }
 }
