@@ -32,6 +32,7 @@ public class TestSession extends BaseTimeEntity {
     @Builder.Default
     private List<Word> words = new ArrayList<>();
 
+    @Column(columnDefinition = "TINYINT(1) DEFAULT 0")
     private boolean finished;
 
     public void submitAnswer(boolean isCorrect) {
