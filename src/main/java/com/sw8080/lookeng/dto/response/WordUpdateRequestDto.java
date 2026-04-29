@@ -1,11 +1,13 @@
 package com.sw8080.lookeng.dto.response;
 
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 public class WordUpdateRequestDto {
 
     @Size(min = 1, max = 100, message = "영단어는 1자 이상 100자 이하이어야 합니다.")

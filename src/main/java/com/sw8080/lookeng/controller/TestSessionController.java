@@ -11,6 +11,7 @@ import com.sw8080.lookeng.dto.response.TestSessionResponseDto;
 import com.sw8080.lookeng.service.TestSessionService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +26,7 @@ public class TestSessionController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<TestSessionResponseDto>> startSession(
-            @RequestBody TestSessionRequestDto request,
+            @Valid @RequestBody TestSessionRequestDto request,
             HttpServletRequest httpRequest) {
 
         HttpSession session = httpRequest.getSession(false);
@@ -43,7 +44,7 @@ public class TestSessionController {
     @PostMapping("/{sessionId}/answers")
     public ResponseEntity<ApiResponse<TestAnswerResponseDto>> submitAnswer(
             @PathVariable Long sessionId,
-            @RequestBody TestAnswerRequestDto request,
+            @Valid @RequestBody TestAnswerRequestDto request,
             HttpServletRequest httpRequest) {
 
         // 1. 로그인 확인 (401)
@@ -60,7 +61,7 @@ public class TestSessionController {
     @PostMapping("/{sessionId}/finish")
     public ResponseEntity<ApiResponse<TestFinishResponseDto>> finishSession(
             @PathVariable Long sessionId,
-            @RequestBody TestFinishRequestDto request,
+            @Valid @RequestBody TestFinishRequestDto request,
             HttpServletRequest httpRequest) {
 
         // 1. 로그인 확인 (401)

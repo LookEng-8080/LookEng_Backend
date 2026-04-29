@@ -2,11 +2,13 @@ package com.sw8080.lookeng.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 public class WordCreateRequestDto {
     @NotBlank(message = "영단어는 필수입니다.")
     @Size(max = 100, message = "영단어는 최대 100자까지 가능합니다.")
