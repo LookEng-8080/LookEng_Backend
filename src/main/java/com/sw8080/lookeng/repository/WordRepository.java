@@ -10,4 +10,5 @@ public interface WordRepository extends JpaRepository<Word, Long> {
     // 409 에러 처리: 본인(id)을 제외하고 동일한 영단어가 존재하는지 확인
     boolean existsByEnglishAndIdNot(String english, Long id);
 
+
 }
