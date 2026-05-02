@@ -24,10 +24,7 @@ public class AdminController {
     private final UserRepository userRepository;
 
     @GetMapping("/users")
-    public ResponseEntity<ApiResponse<UserListResponseDto>> getUsers(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            HttpServletRequest httpRequest) {
+    public ResponseEntity<ApiResponse<UserListResponseDto>> getUsers(HttpServletRequest httpRequest) {
 
         // 1. 로그인 확인
         HttpSession session = httpRequest.getSession(false);
@@ -44,8 +41,8 @@ public class AdminController {
                     .body(new ApiResponse<>(false, "관리자 접근 권한이 없습니다.", null));
         }
 
-        // 3. 유저 목록 조회
-        UserListResponseDto data = adminService.getUsers(page, size);
+        // 3. USER 롤 전체 목록 조회
+        UserListResponseDto data = adminService.getUsers();
         return ResponseEntity.ok(new ApiResponse<>(true, "유저 목록 조회 성공", data));
     }
 
