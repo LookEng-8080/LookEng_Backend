@@ -48,7 +48,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**",
                                 "/error",
                                 "/api/v1/words/**",
-                                "/api/v1/test/**", "/api/v1/user/**").permitAll()
+                                "/api/v1/test/**", "/api/v1/user/**",
+                                "/api/v1/admin/**").permitAll()
                         .anyRequest().authenticated()
                 );
         return http.build();
