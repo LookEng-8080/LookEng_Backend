@@ -30,13 +30,13 @@ public class WordService {
 
     @Transactional
     public WordResponseDto createWord(WordCreateRequestDto request) {
-        // 1. 단어 개수 50개 제한 로직 추가
-        if (wordRepository.count() >= 50) {
+        // 1. 단어 개수 50개 제한 로직 (💡 수정: 삭제되지 않은 단어 기준)
+        if (wordRepository.countByDeletedFalse() >= 50) {
             throw new BadRequestException("단어장에는 최대 50개의 단어만 추가할 수 있습니다.");
         }
 
-        // 2. 명세서 409 에러: 동일 영단어 존재 여부 확인
-        if (wordRepository.existsByEnglish(request.getEnglish())) {
+        // 2. 명세서 409 에러: 동일 영단어 존재 여부 확인 (💡 수정: 삭제되지 않은 단어 기준)
+        if (wordRepository.existsByEnglishAndDeletedFalse(request.getEnglish())) {
             throw new DuplicateException("이미 존재하는 영단어입니다.");
         }
 
@@ -54,15 +54,17 @@ public class WordService {
         // 4. 응답 DTO 변환
         return WordResponseDto.from(savedWord);
     }
+
     @Transactional
     public WordResponseDto updateWord(Long id, WordUpdateRequestDto request) {
-        // 1. 명세서 404 에러: 수정할 단어가 존재하는지 조회
+        // 1. 명세서 404 에러: 수정할 단어가 존재하는지 조회 (💡 수정: 이미 지워진 단어 필터링)
         Word word = wordRepository.findById(id)
+                .filter(w -> !w.isDeleted())
                 .orElseThrow(() -> new NotFoundException("해당 단어를 찾을 수 없습니다."));
 
-        // 2. 명세서 409 에러: 영단어(english) 수정 요청이 들어왔고, 그 값이 기존과 다를 경우 중복 검사
+        // 2. 명세서 409 에러: 영단어(english) 수정 요청이 들어왔고, 그 값이 기존과 다를 경우 중복 검사 (💡 수정)
         if (request.getEnglish() != null && !request.getEnglish().equals(word.getEnglish())) {
-            if (wordRepository.existsByEnglishAndIdNot(request.getEnglish(), id)) {
+            if (wordRepository.existsByEnglishAndIdNotAndDeletedFalse(request.getEnglish(), id)) {
                 throw new DuplicateException("이미 존재하는 영단어입니다.");
             }
         }
@@ -82,12 +84,13 @@ public class WordService {
 
     @Transactional
     public void deleteWord(Long id) {
-        // 1. 명세서 404 에러: 삭제할 단어가 존재하는지 조회
+        // 1. 명세서 404 에러: 삭제할 단어가 존재하는지 조회 (💡 수정: 이미 지워진 단어 필터링)
         Word word = wordRepository.findById(id)
+                .filter(w -> !w.isDeleted())
                 .orElseThrow(() -> new NotFoundException("해당 단어를 찾을 수 없습니다."));
 
-        // 2. 단어 삭제
-        wordRepository.delete(word);
+        // 2. 단어 삭제 (💡 수정: DB에서 날리지 않고 꼬리표만 달기)
+        word.delete();
     }
 
     @Transactional(readOnly = true)
@@ -101,9 +104,9 @@ public class WordService {
             sort = Sort.by(Sort.Direction.DESC, "english");
         }
 
-        // 2. Pageable 객체 생성 및 DB 조회
+        // 2. Pageable 객체 생성 및 DB 조회 (💡 수정: 삭제되지 않은 단어만 가져오기)
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<Word> wordPage = wordRepository.findAll(pageable);
+        Page<Word> wordPage = wordRepository.findAllByDeletedFalse(pageable);
 
         // 3. 엔티티(Word) -> DTO 변환
         List<WordItemDto> content = wordPage.getContent().stream()
@@ -120,10 +123,12 @@ public class WordService {
                 .size(wordPage.getSize())
                 .build();
     }
+
     @Transactional(readOnly = true)
     public WordDetailResponseDto getWordDetail(Long id, Long userId) {
-        // 1. 명세서 404 에러: 조회할 단어가 존재하는지 확인
+        // 1. 명세서 404 에러: 조회할 단어가 존재하는지 확인 (💡 수정: 이미 지워진 단어 필터링)
         Word word = wordRepository.findById(id)
+                .filter(w -> !w.isDeleted())
                 .orElseThrow(() -> new NotFoundException("해당 단어를 찾을 수 없습니다."));
 
         // 2. 나중에 USER_WORD 테이블이 생기면 연동할 부분 (지금은 임시로 false)
@@ -133,5 +138,4 @@ public class WordService {
         // 3. DTO로 변환하여 반환
         return WordDetailResponseDto.from(word, isMemorized, isBookmarked);
     }
-
 }
