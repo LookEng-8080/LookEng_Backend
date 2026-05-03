@@ -1,5 +1,6 @@
 package com.sw8080.lookeng.entity;
 
+import com.sw8080.lookeng.dto.request.WordCreateRequestDto;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -68,5 +69,13 @@ public class Word {
 
     public void delete() {
         this.deleted = true;
+    }
+
+    public void restore(WordCreateRequestDto request) {
+        this.deleted = false; // 삭제 상태 해제
+        this.korean = request.getKorean();
+        this.partOfSpeech = request.getPartOfSpeech();
+        this.exampleSentence = request.getExampleSentence();
+        this.pronunciationUrl = request.getPronunciationUrl();
     }
 }
