@@ -44,7 +44,7 @@ public class Word {
     private LocalDateTime updatedAt;
 
     @Column(name = "is_deleted", nullable = false)
-    private boolean isDeleted = false;
+    private boolean deleted = false;
 
     @Builder
     public Word(String english, String korean, String partOfSpeech, String exampleSentence, String pronunciationUrl) {
@@ -63,6 +63,6 @@ public class Word {
     }
 
     public void delete() {
-        this.isDeleted = true;
+        this.deleted = true;
     }
 }
