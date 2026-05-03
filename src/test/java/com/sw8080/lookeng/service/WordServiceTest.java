@@ -114,7 +114,7 @@ class WordServiceTest {
     void updateWord_duplicateEnglish() {
         WordUpdateRequestDto request = new WordUpdateRequestDto("banana", null, null, null, null);
         given(wordRepository.findById(anyLong())).willReturn(Optional.of(word));
-        given(wordRepository.existsByEnglishAndIdNotAndDeletedFalse(anyString(), anyLong())).willReturn(true);
+        given(wordRepository.existsByEnglishAndIdNot(anyString(), anyLong())).willReturn(true);
 
         assertThatThrownBy(() -> wordService.updateWord(1L, request))
                 .isInstanceOf(DuplicateException.class);

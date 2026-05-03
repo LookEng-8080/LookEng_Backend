@@ -20,6 +20,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,9 +36,20 @@ public class WordService {
             throw new BadRequestException("단어장에는 최대 50개의 단어만 추가할 수 있습니다.");
         }
 
-        // 2. 명세서 409 에러: 동일 영단어 존재 여부 확인 (@SQLRestriction으로 삭제된 단어 자동 제외)
-        if (wordRepository.existsByEnglish(request.getEnglish())) {
-            throw new DuplicateException("이미 존재하는 영단어입니다.");
+        // 2. 삭제된 데이터 포함해서 영단어 존재 여부 확인
+        Optional<Word> existingWord = wordRepository.findByEnglishIncludingDeleted(request.getEnglish());
+
+        if (existingWord.isPresent()) {
+            Word word = existingWord.get();
+
+            // 이미 사용 중인 단어라면 중복 에러 발생
+            if (!word.isDeleted()) {
+                throw new DuplicateException("이미 존재하는 영단어입니다.");
+            }
+
+            // 삭제된 단어라면 상태를 변경하고 새로운 정보로 업데이트 (Restore)
+            word.restore(request);
+            return WordResponseDto.from(word);
         }
 
         // 3. 단어 엔티티 생성 및 저장
