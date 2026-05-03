@@ -23,4 +23,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(e.getStatus())
                 .body(new CommonResponse<>(false, e.getMessage(), null));
     }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<CommonResponse<Void>> handleUnexpectedException(Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new CommonResponse<>(false, "서버 오류가 발생했습니다.", null));
+    }
 }

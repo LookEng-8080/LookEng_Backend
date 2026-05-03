@@ -6,17 +6,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface WordRepository extends JpaRepository<Word, Long> {
-    // 1. 단어 개수 제한(50개)을 위한 조회 (삭제되지 않은 것만)
-    long countByDeletedFalse();
+    // @SQLRestriction("is_deleted = false") 가 모든 쿼리에 자동 적용되므로
+    // DeletedFalse 조건 없이도 삭제된 단어가 자동 제외됨
 
-    // 2. 단어장 목록 조회용 (삭제되지 않은 것만 페이징해서 가져오기)
-    Page<Word> findAllByDeletedFalse(Pageable pageable);
+    // 409 에러(단어 추가 시 중복) 처리
+    boolean existsByEnglish(String english);
 
-    // 3. 409 에러(단어 추가 시 중복) 처리: 삭제 안 된 단어 중 동일한 영단어가 있는지 확인
-    boolean existsByEnglishAndDeletedFalse(String english);
-
-    // 4. 409 에러(단어 수정 시 중복) 처리: 본인(id) 제외, 삭제 안 된 단어 중 동일한 영단어가 있는지 확인
-    boolean existsByEnglishAndIdNotAndDeletedFalse(String english, Long id);
-
-
+    // 409 에러(단어 수정 시 중복) 처리: 본인(id) 제외
+    boolean existsByEnglishAndIdNot(String english, Long id);
 }
