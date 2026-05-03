@@ -58,7 +58,7 @@ class WordServiceTest {
         WordCreateRequestDto request = new WordCreateRequestDto("apple", "사과", "noun", "I ate an apple.", null);
 
         given(wordRepository.count()).willReturn(0L);
-        given(wordRepository.existsByEnglish(anyString())).willReturn(false);
+        given(wordRepository.existsByEnglishAndDeletedFalse(anyString())).willReturn(false);
         given(wordRepository.save(any(Word.class))).willReturn(word);
 
         WordResponseDto result = wordService.createWord(request);
@@ -82,7 +82,7 @@ class WordServiceTest {
     void createWord_duplicateEnglish() {
         WordCreateRequestDto request = new WordCreateRequestDto("apple", "사과", null, null, null);
         given(wordRepository.count()).willReturn(0L);
-        given(wordRepository.existsByEnglish(anyString())).willReturn(true);
+        given(wordRepository.existsByEnglishAndDeletedFalse(anyString())).willReturn(true);
 
         assertThatThrownBy(() -> wordService.createWord(request))
                 .isInstanceOf(DuplicateException.class);
@@ -114,7 +114,7 @@ class WordServiceTest {
     void updateWord_duplicateEnglish() {
         WordUpdateRequestDto request = new WordUpdateRequestDto("banana", null, null, null, null);
         given(wordRepository.findById(anyLong())).willReturn(Optional.of(word));
-        given(wordRepository.existsByEnglishAndIdNot(anyString(), anyLong())).willReturn(true);
+        given(wordRepository.existsByEnglishAndIdNotAndDeletedFalse(anyString(), anyLong())).willReturn(true);
 
         assertThatThrownBy(() -> wordService.updateWord(1L, request))
                 .isInstanceOf(DuplicateException.class);

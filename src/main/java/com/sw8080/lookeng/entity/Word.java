@@ -43,6 +43,9 @@ public class Word {
     @LastModifiedDate
     private LocalDateTime updatedAt;
 
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;
+
     @Builder
     public Word(String english, String korean, String partOfSpeech, String exampleSentence, String pronunciationUrl) {
         this.english = english;
@@ -57,5 +60,9 @@ public class Word {
         if (partOfSpeech != null) this.partOfSpeech = partOfSpeech;
         if (exampleSentence != null) this.exampleSentence = exampleSentence;
         if (pronunciationUrl != null) this.pronunciationUrl = pronunciationUrl;
+    }
+
+    public void delete() {
+        this.isDeleted = true;
     }
 }

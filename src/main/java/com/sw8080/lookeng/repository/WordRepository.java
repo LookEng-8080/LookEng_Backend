@@ -1,14 +1,22 @@
 package com.sw8080.lookeng.repository;
 
 import com.sw8080.lookeng.entity.Word;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface WordRepository extends JpaRepository<Word, Long> {
-    // 409 에러(중복) 처리를 위해 영단어 존재 여부 확인 메서드 추가
-    boolean existsByEnglish(String english);
+    // 1. 단어 개수 제한(50개)을 위한 조회 (삭제되지 않은 것만)
+    long countByDeletedFalse();
 
-    // 409 에러 처리: 본인(id)을 제외하고 동일한 영단어가 존재하는지 확인
-    boolean existsByEnglishAndIdNot(String english, Long id);
+    // 2. 단어장 목록 조회용 (삭제되지 않은 것만 페이징해서 가져오기)
+    Page<Word> findAllByDeletedFalse(Pageable pageable);
+
+    // 3. 409 에러(단어 추가 시 중복) 처리: 삭제 안 된 단어 중 동일한 영단어가 있는지 확인
+    boolean existsByEnglishAndDeletedFalse(String english);
+
+    // 4. 409 에러(단어 수정 시 중복) 처리: 본인(id) 제외, 삭제 안 된 단어 중 동일한 영단어가 있는지 확인
+    boolean existsByEnglishAndIdNotAndDeletedFalse(String english, Long id);
 
 
 }
