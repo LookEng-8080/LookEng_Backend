@@ -11,6 +11,10 @@ spring:
     hibernate:
       ddl-auto: validate
 
+lookeng:
+  admin:
+    secret-code: "LOOKENG_SECRET_777"
+
 ---
 spring:
   config:

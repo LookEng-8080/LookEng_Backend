@@ -1,8 +1,10 @@
 package com.sw8080.lookeng.service;
 
 import com.sw8080.lookeng.Role;
+import com.sw8080.lookeng.dto.request.AdminSignupRequestDto;
 import com.sw8080.lookeng.dto.request.LoginRequestDto;
 import com.sw8080.lookeng.dto.request.SignupRequestDto;
+import com.sw8080.lookeng.dto.response.AdminSignupResponseDto;
 import com.sw8080.lookeng.dto.response.LoginResponseDto;
 import com.sw8080.lookeng.dto.response.SignupResponseDto;
 import com.sw8080.lookeng.entity.User;
@@ -69,9 +71,9 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("관리자 회원가입 성공 - ADMIN 역할 부여")
+    @DisplayName("관리자 회원가입 성공 - 올바른 코드 입력 시 ADMIN 역할 부여")
     void adminSignup_success() {
-        SignupRequestDto request = new SignupRequestDto("admin@test.com", "password123", "관리자");
+        AdminSignupRequestDto request = new AdminSignupRequestDto("admin@test.com", "password123", "관리자", "LOOKENG_SECRET_777");
         User savedAdmin = User.builder()
                 .email("admin@test.com")
                 .passwordHash("encoded")
@@ -83,9 +85,18 @@ class AuthServiceTest {
         given(passwordEncoder.encode(anyString())).willReturn("encoded");
         given(userRepository.save(any(User.class))).willReturn(savedAdmin);
 
-        SignupResponseDto result = authService.adminSignup(request);
+        AdminSignupResponseDto result = authService.adminSignup(request);
 
         assertThat(result.getRole()).isEqualTo("ADMIN");
+    }
+    @Test
+    @DisplayName("관리자 회원가입 실패 - 관리자 코드 불일치 → UnauthorizedException")
+    void adminSignup_wrongAdminCode() {
+        AdminSignupRequestDto request = new AdminSignupRequestDto("admin@test.com", "password123", "관리자", "WRONG_CODE");
+
+        assertThatThrownBy(() -> authService.adminSignup(request))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessage("관리자 코드가 일치하지 않습니다.");
     }
 
     @Test
