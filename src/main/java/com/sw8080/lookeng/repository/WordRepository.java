@@ -1,12 +1,11 @@
 package com.sw8080.lookeng.repository;
 
 import com.sw8080.lookeng.entity.Word;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface WordRepository extends JpaRepository<Word, Long> {
@@ -22,4 +21,8 @@ public interface WordRepository extends JpaRepository<Word, Long> {
     // @SQLRestriction을 무시하고 삭제된 데이터까지 포함해서 조회
     @Query(value = "SELECT * FROM word w WHERE w.english = :english", nativeQuery = true)
     Optional<Word> findByEnglishIncludingDeleted(@Param("english") String english);
+
+    // CSV 일괄 업로드 시 DB 중복 영단어 일괄 조회 (루프 대신 쿼리 1번으로 처리)
+    @Query("SELECT w.english FROM Word w WHERE w.english IN :englishList")
+    List<String> findExistingEnglish(@Param("englishList") List<String> englishList);
 }
