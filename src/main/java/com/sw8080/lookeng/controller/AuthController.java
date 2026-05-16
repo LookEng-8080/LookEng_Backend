@@ -1,6 +1,8 @@
 package com.sw8080.lookeng.controller;
 
 import com.sw8080.lookeng.ApiResponse;
+import com.sw8080.lookeng.dto.request.AdminSignupRequestDto;
+import com.sw8080.lookeng.dto.response.AdminSignupResponseDto;
 import com.sw8080.lookeng.exception.UnauthorizedException;
 import com.sw8080.lookeng.dto.request.LoginRequestDto;
 import com.sw8080.lookeng.dto.request.SignupRequestDto;
@@ -36,11 +38,11 @@ public class AuthController {
                 .body(new ApiResponse<>(true, "회원가입이 완료되었습니다.", response));
     }
     @PostMapping("/admin/signup")
-    public ResponseEntity<ApiResponse<SignupResponseDto>> adminSignup(
-            @Valid @RequestBody SignupRequestDto request) {
+    public ResponseEntity<ApiResponse<AdminSignupResponseDto>> adminSignup(
+            @Valid @RequestBody AdminSignupRequestDto request) {
 
         // 관리자 가입 서비스 호출
-        SignupResponseDto response = authService.adminSignup(request);
+        AdminSignupResponseDto response = authService.adminSignup(request);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new ApiResponse<>(true, "관리자 회원가입이 완료되었습니다.", response));

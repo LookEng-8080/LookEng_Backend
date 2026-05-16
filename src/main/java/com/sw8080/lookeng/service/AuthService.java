@@ -1,6 +1,8 @@
 package com.sw8080.lookeng.service;
 
 import com.sw8080.lookeng.Role;
+import com.sw8080.lookeng.dto.request.AdminSignupRequestDto;
+import com.sw8080.lookeng.dto.response.AdminSignupResponseDto;
 import com.sw8080.lookeng.exception.DuplicateException;
 import com.sw8080.lookeng.exception.UnauthorizedException;
 import com.sw8080.lookeng.dto.request.LoginRequestDto;
@@ -11,6 +13,7 @@ import com.sw8080.lookeng.entity.User;
 import com.sw8080.lookeng.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +23,9 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${lookeng.admin.secret-code}")
+    private String adminSecretCode;
 
     @Transactional
     public SignupResponseDto signup(SignupRequestDto request) {
@@ -68,26 +74,33 @@ public class AuthService {
     }
 
     @Transactional
-    public SignupResponseDto adminSignup(SignupRequestDto request) {
-        // 1. 중복 이메일 검증
+    public AdminSignupResponseDto adminSignup(AdminSignupRequestDto request) {
+
+        // 💡 1. 관리자 코드 일치 여부 검증
+        if (!adminSecretCode.equals(request.getAdminCode())) {
+            throw new UnauthorizedException("관리자 코드가 일치하지 않습니다.");
+        }
+
+        // 2. 중복 이메일 검증
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateException("이미 사용 중인 이메일입니다.");
         }
 
-        // 2. 관리자 엔티티 생성 (비밀번호 암호화 동일하게 적용)
+        // 3. 관리자 엔티티 생성 (passwordHash 필드 유지)
         User admin = User.builder()
                 .email(request.getEmail())
-                .passwordHash(passwordEncoder.encode(request.getPassword())) // 🌟 암호화 유지
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .nickname(request.getNickname())
-                .role(Role.ADMIN) //
+                .role(Role.ADMIN)
                 .build();
 
         User savedAdmin = userRepository.save(admin);
 
-        // 3. 응답 DTO 변환
-        return SignupResponseDto.builder()
-                .userId(savedAdmin.getId())
+        // 4. 응답 DTO 변환 및 반환
+        return AdminSignupResponseDto.builder()
+                .id(savedAdmin.getId())
                 .email(savedAdmin.getEmail())
+                .nickname(savedAdmin.getNickname())
                 .role(savedAdmin.getRole().name())
                 .build();
     }
