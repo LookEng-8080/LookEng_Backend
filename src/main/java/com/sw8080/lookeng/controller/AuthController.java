@@ -1,8 +1,10 @@
 package com.sw8080.lookeng.controller;
 
 import com.sw8080.lookeng.ApiResponse;
+import com.sw8080.lookeng.Role;
 import com.sw8080.lookeng.dto.request.AdminSignupRequestDto;
 import com.sw8080.lookeng.dto.response.AdminSignupResponseDto;
+import com.sw8080.lookeng.exception.ForbiddenException;
 import com.sw8080.lookeng.exception.UnauthorizedException;
 import com.sw8080.lookeng.dto.request.LoginRequestDto;
 import com.sw8080.lookeng.dto.request.SignupRequestDto;
@@ -16,10 +18,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -81,5 +80,32 @@ public class AuthController {
 
         // 4. 명세서 200 OK 응답 반환 (data는 null)
         return ResponseEntity.ok(new CommonResponse<>(true, "로그아웃 성공", null));
+    }
+
+    @DeleteMapping("/withdraw")
+    public ResponseEntity<CommonResponse<Void>> withdraw(HttpServletRequest request) {
+        // 1. 세션 확인 및 유저 식별자 추출 (미로그인 시 401 예외)
+        HttpSession session = request.getSession(false);
+        if (session == null || session.getAttribute("LOGIN_USER_ID") == null) {
+            throw new UnauthorizedException("세션이 없습니다. (미로그인 상태)");
+        }
+
+        // 💡 2. 관리자 탈퇴 방지 1차 방어 (세션 권한 확인 시 403 예외)
+        String roleString = (String) session.getAttribute("LOGIN_USER_ROLE");
+        if (Role.ADMIN.name().equals(roleString)) {
+            throw new ForbiddenException("관리자 계정은 탈퇴할 수 없습니다.");
+        }
+
+        // 3. 탈퇴 비즈니스 로직 실행
+        Long userId = (Long) session.getAttribute("LOGIN_USER_ID");
+        authService.withdraw(userId);
+
+        // 4. 탈퇴 성공 후 세션 무효화 (출입증 즉시 폐기)
+        session.invalidate();
+
+        // 5. 명세서에 맞춘 200 OK 응답
+        return ResponseEntity.ok(
+                new CommonResponse<>(true, "회원 탈퇴 및 데이터 삭제가 정상적으로 완료되었습니다.", null)
+        );
     }
 }
