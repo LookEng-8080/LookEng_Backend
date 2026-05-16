@@ -3,6 +3,7 @@ package com.sw8080.lookeng.controller;
 import com.sw8080.lookeng.ApiResponse;
 import com.sw8080.lookeng.Role;
 import com.sw8080.lookeng.dto.request.AdminSignupRequestDto;
+import com.sw8080.lookeng.dto.request.PasswordResetRequestDto;
 import com.sw8080.lookeng.dto.response.AdminSignupResponseDto;
 import com.sw8080.lookeng.exception.ForbiddenException;
 import com.sw8080.lookeng.exception.UnauthorizedException;
@@ -19,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -108,4 +110,31 @@ public class AuthController {
                 new CommonResponse<>(true, "회원 탈퇴 및 데이터 삭제가 정상적으로 완료되었습니다.", null)
         );
     }
+
+    @PostMapping("/password/reset-request")
+    public ResponseEntity<CommonResponse<Void>> requestPasswordReset(
+            @Valid @RequestBody PasswordResetRequestDto request) {
+
+        // AuthService한테 일 시키기
+        authService.requestPasswordReset(request);
+
+        // 결과 응답하기
+        return ResponseEntity.ok(
+                new CommonResponse<>(true, "비밀번호 재설정 인증번호가 이메일로 발송되었습니다.", null)
+        );
+    }
+
+    @PostMapping("/password/reset")
+    public ResponseEntity<CommonResponse<Void>> resetPassword(
+            @Valid @RequestBody com.sw8080.lookeng.dto.request.PasswordResetConfirmRequestDto request) {
+
+        // 1. 비밀번호 변경 로직 실행
+        authService.resetPassword(request);
+
+        // 2. 성공 응답 반환
+        return ResponseEntity.ok(
+                new CommonResponse<>(true, "비밀번호가 성공적으로 변경되었습니다.", null)
+        );
+    }
+
 }
