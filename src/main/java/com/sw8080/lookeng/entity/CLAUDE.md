@@ -24,5 +24,14 @@
 - `testSession`과 `word`를 `@ManyToOne`으로 참조
 - `isCorrect` 필드로 오답 목록 필터링에 사용
 
+### UserWord
+- 테이블: `USER_WORD`
+- `(userId, wordId)` 복합 조건으로 레코드를 식별 (`UserWordRepository.findByUserIdAndWordId`)
+- `isBookmarked`: 북마크 상태, 기본값 `false`
+- `toggleBookmark()` 메서드: `isBookmarked` 반전 — Dirty Checking으로 자동 반영
+- `toggleMemorize()` 메서드: `isMemorized` 반전 + `memorizedAt` 갱신 (`true→false`는 null, `false→true`는 NOW())
+- `@LastModifiedDate` + `@EntityListeners(AuditingEntityListener.class)`로 `updatedAt` 자동 기록
+- User/Word 엔티티와 `@ManyToOne` 관계 없이 `Long` 타입으로 외래키 보관 (기존 패턴 유지)
+
 ### BaseTimeEntity
 - `createdAt`, `updatedAt` 공통 필드 제공 — `TestSession`이 상속

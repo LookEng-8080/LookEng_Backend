@@ -14,9 +14,8 @@ public class WordItemDto {
     private String exampleSentence;
     private String pronunciationUrl;
 
-    // 나중에 USER_WORD 테이블이 생기면 연동할 필드
-    private boolean isMemorized;
-    private boolean isBookmarked;
+    private Boolean isMemorized;
+    private Boolean isBookmarked;
 
     public static WordItemDto from(Word word, boolean isMemorized, boolean isBookmarked) {
         return WordItemDto.builder()
