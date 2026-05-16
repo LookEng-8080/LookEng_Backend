@@ -2,6 +2,7 @@ package com.sw8080.lookeng.controller;
 
 import com.sw8080.lookeng.ApiResponse;
 import com.sw8080.lookeng.dto.request.WordCreateRequestDto;
+import com.sw8080.lookeng.dto.response.BulkUploadResponseDto;
 import com.sw8080.lookeng.dto.response.WordDetailResponseDto;
 import com.sw8080.lookeng.dto.response.WordListResponseDto;
 import com.sw8080.lookeng.dto.response.WordResponseDto;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/words")
@@ -35,7 +37,6 @@ public class WordController {
         }
 
         // 2. 명세서 403 에러: ADMIN 권한 확인
-        // 주의: 세션에 저장된 Role이 Enum인 경우 문자열 변환 처리
         Object roleObj = session.getAttribute("LOGIN_USER_ROLE");
         String role = roleObj != null ? roleObj.toString() : "";
 
@@ -51,6 +52,42 @@ public class WordController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new ApiResponse<>(true, "단어가 추가되었습니다.", data));
     }
+
+    @PostMapping("/bulk")
+    public ResponseEntity<ApiResponse<BulkUploadResponseDto>> bulkUpload(
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest httpRequest) {
+
+        // 1. 명세서 401 에러: 인증(로그인) 확인
+        HttpSession session = httpRequest.getSession(false);
+        if (session == null || session.getAttribute("LOGIN_USER_ID") == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "로그인이 필요한 서비스입니다.", null));
+        }
+
+        // 2. 명세서 403 에러: ADMIN 권한 확인
+        Object roleObj = session.getAttribute("LOGIN_USER_ROLE");
+        String role = roleObj != null ? roleObj.toString() : "";
+
+        if (!"ADMIN".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "관리자 접근 권한이 없습니다.", null));
+        }
+
+        // 3. 파일 누락 확인
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(false, "파일을 선택해주세요.", null));
+        }
+
+        // 4. 비즈니스 로직 실행
+        BulkUploadResponseDto data = wordService.bulkUpload(file);
+
+        // 5. 명세서 201 Created 응답 반환
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(true, "단어 일괄 추가가 완료되었습니다.", data));
+    }
+
     @PatchMapping("/{id}")
     public ResponseEntity<ApiResponse<WordResponseDto>> updateWord(
             @PathVariable Long id,
@@ -70,7 +107,7 @@ public class WordController {
                     .body(new ApiResponse<>(false, "로그인이 필요한 서비스입니다.", null));
         }
 
-        // 3. 명세서 403 에러: ADMIN 권한 확인 (현우님과 상의 전까지 임시 주석 처리 가능)
+        // 3. 명세서 403 에러: ADMIN 권한 확인
         Object roleObj = session.getAttribute("LOGIN_USER_ROLE");
         String role = roleObj != null ? roleObj.toString() : "";
 
@@ -98,7 +135,7 @@ public class WordController {
                     .body(new ApiResponse<>(false, "로그인이 필요한 서비스입니다.", null));
         }
 
-        // 2. 명세서 403 에러: ADMIN 권한 확인 (테스트 중이라면 임시 주석 처리!)
+        // 2. 명세서 403 에러: ADMIN 권한 확인
         Object roleObj = session.getAttribute("LOGIN_USER_ROLE");
         String role = roleObj != null ? roleObj.toString() : "";
 
@@ -161,5 +198,4 @@ public class WordController {
         // 4. 명세서 200 OK 응답 반환
         return ResponseEntity.ok(new ApiResponse<>(true, "단어 상세 조회 성공", data));
     }
-
 }
