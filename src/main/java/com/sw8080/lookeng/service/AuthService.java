@@ -4,6 +4,7 @@ import com.sw8080.lookeng.Role;
 import com.sw8080.lookeng.dto.request.AdminSignupRequestDto;
 import com.sw8080.lookeng.dto.response.AdminSignupResponseDto;
 import com.sw8080.lookeng.exception.DuplicateException;
+import com.sw8080.lookeng.exception.NotFoundException;
 import com.sw8080.lookeng.exception.UnauthorizedException;
 import com.sw8080.lookeng.dto.request.LoginRequestDto;
 import com.sw8080.lookeng.dto.request.SignupRequestDto;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.sw8080.lookeng.exception.ForbiddenException;
 
 @Service
 @RequiredArgsConstructor
@@ -103,5 +105,21 @@ public class AuthService {
                 .nickname(savedAdmin.getNickname())
                 .role(savedAdmin.getRole().name())
                 .build();
+    }
+
+
+    @Transactional
+    public void withdraw(Long userId) {
+        // 1. 세션에서 가져온 ID로 유저 조회 (없으면 404 예외)
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("해당 사용자를 찾을 수 없습니다."));
+
+        // 💡 2. 관리자 탈퇴 방지 2차 방어 (DB 상의 진짜 권한 확인)
+        if (user.getRole() == Role.ADMIN) {
+            throw new ForbiddenException("관리자 계정은 탈퇴할 수 없습니다.");
+        }
+
+        // 3. 일반 사용자일 경우에만 DB에서 레코드 완전 삭제 (하드 딜리트)
+        userRepository.delete(user);
     }
 }
