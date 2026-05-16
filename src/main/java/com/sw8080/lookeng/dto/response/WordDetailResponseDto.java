@@ -16,9 +16,8 @@ public class WordDetailResponseDto {
     private String exampleSentence;
     private String pronunciationUrl;
 
-    // 유저별 학습 상태 (임시)
-    private boolean isMemorized;
-    private boolean isBookmarked;
+    private Boolean isMemorized;
+    private Boolean isBookmarked;
 
     // 시간 정보
     private LocalDateTime createdAt;

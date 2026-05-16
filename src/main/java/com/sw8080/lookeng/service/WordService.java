@@ -9,7 +9,9 @@ import com.sw8080.lookeng.dto.response.WordDetailResponseDto;
 import com.sw8080.lookeng.dto.response.WordListResponseDto;
 import com.sw8080.lookeng.dto.response.WordResponseDto;
 import com.sw8080.lookeng.dto.response.WordUpdateRequestDto;
+import com.sw8080.lookeng.entity.UserWord;
 import com.sw8080.lookeng.entity.Word;
+import com.sw8080.lookeng.repository.UserWordRepository;
 import com.sw8080.lookeng.repository.WordRepository;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -28,6 +31,7 @@ import java.util.stream.Collectors;
 public class WordService {
 
     private final WordRepository wordRepository;
+    private final UserWordRepository userWordRepository;
 
     @Transactional
     public WordResponseDto createWord(WordCreateRequestDto request) {
@@ -118,13 +122,25 @@ public class WordService {
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<Word> wordPage = wordRepository.findAll(pageable);
 
-        // 3. 엔티티(Word) -> DTO 변환
+        // 3. 해당 페이지 wordId 목록으로 USER_WORD 일괄 조회 → wordId 맵 생성
+        List<Long> wordIds = wordPage.getContent().stream()
+                .map(Word::getId)
+                .collect(Collectors.toList());
+        Map<Long, UserWord> userWordMap = userWordRepository.findByUserIdAndWordIdIn(userId, wordIds)
+                .stream()
+                .collect(Collectors.toMap(UserWord::getWordId, uw -> uw));
+
+        // 4. 엔티티(Word) -> DTO 변환
         List<WordItemDto> content = wordPage.getContent().stream()
-                // 지금은 USER_WORD 테이블이 없으므로 임시로 false 꽂아넣기!
-                .map(word -> WordItemDto.from(word, false, false))
+                .map(word -> {
+                    UserWord uw = userWordMap.get(word.getId());
+                    boolean isMemorized = uw != null && uw.isMemorized();
+                    boolean isBookmarked = uw != null && uw.isBookmarked();
+                    return WordItemDto.from(word, isMemorized, isBookmarked);
+                })
                 .collect(Collectors.toList());
 
-        // 4. 명세서 포맷에 맞게 응답 DTO 조립
+        // 5. 명세서 포맷에 맞게 응답 DTO 조립
         return WordListResponseDto.builder()
                 .content(content)
                 .totalElements(wordPage.getTotalElements())
@@ -140,9 +156,10 @@ public class WordService {
         Word word = wordRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("해당 단어를 찾을 수 없습니다."));
 
-        // 2. 나중에 USER_WORD 테이블이 생기면 연동할 부분 (지금은 임시로 false)
-        boolean isMemorized = false;
-        boolean isBookmarked = false;
+        // 2. USER_WORD 조회로 실제 학습 상태 반영
+        Optional<UserWord> userWordOpt = userWordRepository.findByUserIdAndWordId(userId, id);
+        boolean isMemorized = userWordOpt.map(UserWord::isMemorized).orElse(false);
+        boolean isBookmarked = userWordOpt.map(UserWord::isBookmarked).orElse(false);
 
         // 3. DTO로 변환하여 반환
         return WordDetailResponseDto.from(word, isMemorized, isBookmarked);

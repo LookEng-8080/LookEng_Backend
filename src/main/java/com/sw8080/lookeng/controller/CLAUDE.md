@@ -23,6 +23,15 @@
 
 단어 목록 쿼리 파라미터: `page`(기본 0), `size`(기본 20), `sort`(기본 `id,asc` / `english,asc` / `english,desc`)
 
+### UserWordController (`/api/v1/user/words`)
+
+| Method | Path | 설명 | 필요 권한 |
+|--------|------|------|-----------|
+| GET | `/bookmarked` | 북마크 단어 목록 조회 | USER 이상 |
+| GET | `/memorized` | 암기 완료 단어 목록 조회 | USER 이상 |
+| PATCH | `/{wordId}/bookmark` | 북마크 토글 | USER 이상 |
+| PATCH | `/{wordId}/memorize` | 암기 상태 토글 | USER 이상 |
+
 ### TestSessionController (`/api/v1/test/sessions`)
 
 | Method | Path | 설명 | 인증 필요 |
