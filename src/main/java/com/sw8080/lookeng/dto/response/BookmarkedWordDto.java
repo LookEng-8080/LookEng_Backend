@@ -16,6 +16,7 @@ public class BookmarkedWordDto {
     private String english;
     private String korean;
     private String partOfSpeech;
+    private String exampleSentence;
     private Boolean isMemorized;
     private Boolean isBookmarked;
 
@@ -25,6 +26,7 @@ public class BookmarkedWordDto {
                 .english(word.getEnglish())
                 .korean(word.getKorean())
                 .partOfSpeech(word.getPartOfSpeech())
+                .exampleSentence(word.getExampleSentence())
                 .isMemorized(userWord.isMemorized())
                 .isBookmarked(true)
                 .build();
