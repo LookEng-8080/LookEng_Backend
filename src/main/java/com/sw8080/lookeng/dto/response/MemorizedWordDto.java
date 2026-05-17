@@ -18,6 +18,7 @@ public class MemorizedWordDto {
     private String english;
     private String korean;
     private String partOfSpeech;
+    private String exampleSentence;
     private Boolean isMemorized;
     private LocalDateTime memorizedAt;
     private Boolean isBookmarked;
@@ -28,6 +29,7 @@ public class MemorizedWordDto {
                 .english(word.getEnglish())
                 .korean(word.getKorean())
                 .partOfSpeech(word.getPartOfSpeech())
+                .exampleSentence(word.getExampleSentence())
                 .isMemorized(true)
                 .memorizedAt(userWord.getMemorizedAt())
                 .isBookmarked(userWord.isBookmarked())
