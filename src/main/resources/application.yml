@@ -27,7 +27,6 @@ lookeng:
   admin:
     secret-code: "LOOKENG_SECRET_777"
 
-
 ---
 spring:
   config:
@@ -37,6 +36,17 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+
+server:
+  servlet:
+    session:
+      cookie:
+        same-site: none
+        secure: false
 
 logging:
   level:
