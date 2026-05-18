@@ -130,8 +130,8 @@ public class WordService {
                     throw new DuplicateException(rowNum + "행: CSV 내 중복 영단어 '" + english + "'가 있습니다.");
                 }
 
-                String partOfSpeech    = cols.length > 2 ? emptyToNull(cols[2]) : null;
-                String exampleSentence = cols.length > 3 ? emptyToNull(cols[3]) : null;
+                String partOfSpeech     = cols.length > 2 ? emptyToNull(cols[2]) : null;
+                String exampleSentence  = cols.length > 3 ? emptyToNull(cols[3]) : null;
                 String pronunciationUrl = cols.length > 4 ? emptyToNull(cols[4]) : null;
 
                 validWords.add(new WordCreateRequestDto(
@@ -146,38 +146,58 @@ public class WordService {
             throw new BadRequestException("업로드할 단어가 없습니다.");
         }
 
-        // 5. DB 중복 일괄 검사
+        // 5. 삭제된 단어 포함 일괄 조회
         List<String> englishList = validWords.stream()
                 .map(WordCreateRequestDto::getEnglish)
                 .collect(Collectors.toList());
-        List<String> duplicates = wordRepository.findExistingEnglish(englishList);
-        if (!duplicates.isEmpty()) {
-            throw new DuplicateException("이미 등록된 영단어가 포함되어 있습니다: " + String.join(", ", duplicates));
+        List<Word> existingWords = wordRepository.findAllByEnglishIncludingDeleted(englishList);
+
+        // 5-1. 활성화된 단어(중복) vs 소프트딜리트된 단어(복구 가능) 분리
+        Map<String, Word> existingMap = existingWords.stream()
+                .collect(Collectors.toMap(Word::getEnglish, w -> w));
+
+        List<String> activeDuplicates = existingWords.stream()
+                .filter(w -> !w.isDeleted())
+                .map(Word::getEnglish)
+                .collect(Collectors.toList());
+
+        if (!activeDuplicates.isEmpty()) {
+            throw new DuplicateException("이미 등록된 영단어가 포함되어 있습니다: " + String.join(", ", activeDuplicates));
         }
 
-        // 6. 단어 개수 50개 제한 확인
-        long currentCount = wordRepository.count();
-        if (currentCount + validWords.size() > 50) {
+        // 6. 단어 개수 50개 제한 확인 (소프트딜리트 복구는 카운트 제외)
+        long activeCount = wordRepository.count();
+        long newWordCount = validWords.stream()
+                .filter(dto -> !existingMap.containsKey(dto.getEnglish()))
+                .count();
+        if (activeCount + newWordCount > 50) {
             throw new BadRequestException(
-                    "단어장 최대 개수(50개)를 초과합니다. 현재 " + currentCount + "개, 추가 요청 " + validWords.size() + "개");
+                    "단어장 최대 개수(50개)를 초과합니다. 현재 " + activeCount + "개, 신규 추가 " + newWordCount + "개");
         }
 
-        // 7. 일괄 저장
-        List<Word> words = validWords.stream()
-                .map(dto -> Word.builder()
+        // 7. 소프트딜리트된 단어 복구 + 새 단어 저장
+        int count = 0;
+        for (WordCreateRequestDto dto : validWords) {
+            Word existing = existingMap.get(dto.getEnglish());
+            if (existing != null && existing.isDeleted()) {
+                // 소프트딜리트된 단어 복구
+                existing.restore(dto);
+                count++;
+            } else {
+                // 새 단어 생성
+                wordRepository.save(Word.builder()
                         .english(dto.getEnglish())
                         .korean(dto.getKorean())
                         .partOfSpeech(dto.getPartOfSpeech())
                         .exampleSentence(dto.getExampleSentence())
                         .pronunciationUrl(dto.getPronunciationUrl())
-                        .build())
-                .collect(Collectors.toList());
+                        .build());
+                count++;
+            }
+        }
 
-        wordRepository.saveAll(words);
-
-        int count = validWords.size();
         return BulkUploadResponseDto.builder()
-                .totalRequested(count)
+                .totalRequested(validWords.size())
                 .successCount(count)
                 .failCount(0)
                 .build();
