@@ -1,6 +1,8 @@
 package com.sw8080.lookeng.repository;
 
 import com.sw8080.lookeng.entity.Word;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -25,4 +27,10 @@ public interface WordRepository extends JpaRepository<Word, Long> {
     // CSV 일괄 업로드 시 DB 중복 영단어 일괄 조회 (루프 대신 쿼리 1번으로 처리)
     @Query("SELECT w.english FROM Word w WHERE w.english IN :englishList")
     List<String> findExistingEnglish(@Param("englishList") List<String> englishList);
+
+    // 영단어(english) 또는 한글 뜻(korean) 부분 일치 검색 (대소문자 무시)
+    @Query("SELECT w FROM Word w WHERE " +
+           "LOWER(w.english) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "w.korean LIKE CONCAT('%', :keyword, '%')")
+    Page<Word> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
 }

@@ -6,6 +6,7 @@ import com.sw8080.lookeng.dto.response.BulkUploadResponseDto;
 import com.sw8080.lookeng.dto.response.WordDetailResponseDto;
 import com.sw8080.lookeng.dto.response.WordListResponseDto;
 import com.sw8080.lookeng.dto.response.WordResponseDto;
+import com.sw8080.lookeng.dto.response.WordSearchResponseDto;
 import com.sw8080.lookeng.dto.response.WordUpdateRequestDto;
 import com.sw8080.lookeng.service.WordService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,17 +30,16 @@ public class WordController {
             @Valid @RequestBody WordCreateRequestDto request,
             HttpServletRequest httpRequest) {
 
-        // 1. 명세서 401 에러: 인증(로그인) 확인
+        // 1. 인증 확인
         HttpSession session = httpRequest.getSession(false);
         if (session == null || session.getAttribute("LOGIN_USER_ID") == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ApiResponse<>(false, "로그인이 필요한 서비스입니다.", null));
         }
 
-        // 2. 명세서 403 에러: ADMIN 권한 확인
+        // 2. ADMIN 권한 확인
         Object roleObj = session.getAttribute("LOGIN_USER_ROLE");
         String role = roleObj != null ? roleObj.toString() : "";
-
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, "관리자 접근 권한이 없습니다.", null));
@@ -48,7 +48,6 @@ public class WordController {
         // 3. 비즈니스 로직 실행
         WordResponseDto data = wordService.createWord(request);
 
-        // 4. 명세서 201 Created 응답 반환
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new ApiResponse<>(true, "단어가 추가되었습니다.", data));
     }
@@ -58,17 +57,16 @@ public class WordController {
             @RequestParam("file") MultipartFile file,
             HttpServletRequest httpRequest) {
 
-        // 1. 명세서 401 에러: 인증(로그인) 확인
+        // 1. 인증 확인
         HttpSession session = httpRequest.getSession(false);
         if (session == null || session.getAttribute("LOGIN_USER_ID") == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ApiResponse<>(false, "로그인이 필요한 서비스입니다.", null));
         }
 
-        // 2. 명세서 403 에러: ADMIN 권한 확인
+        // 2. ADMIN 권한 확인
         Object roleObj = session.getAttribute("LOGIN_USER_ROLE");
         String role = roleObj != null ? roleObj.toString() : "";
-
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, "관리자 접근 권한이 없습니다.", null));
@@ -83,9 +81,38 @@ public class WordController {
         // 4. 비즈니스 로직 실행
         BulkUploadResponseDto data = wordService.bulkUpload(file);
 
-        // 5. 명세서 201 Created 응답 반환
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new ApiResponse<>(true, "단어 일괄 추가가 완료되었습니다.", data));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<WordSearchResponseDto>> searchWords(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            HttpServletRequest httpRequest) {
+
+        // 1. 인증 확인
+        HttpSession session = httpRequest.getSession(false);
+        if (session == null || session.getAttribute("LOGIN_USER_ID") == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "로그인이 필요한 서비스입니다.", null));
+        }
+
+        // 2. keyword 누락 확인
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(false, "검색어를 입력해주세요.", null));
+        }
+
+        // 3. 세션에서 userId 추출
+        Object userIdObj = session.getAttribute("LOGIN_USER_ID");
+        Long userId = Long.valueOf(userIdObj.toString());
+
+        // 4. 비즈니스 로직 실행 (USER / ADMIN 모두 가능)
+        WordSearchResponseDto data = wordService.searchWords(keyword, page, size, userId);
+
+        return ResponseEntity.ok(new ApiResponse<>(true, "단어 검색 결과를 성공적으로 조회했습니다.", data));
     }
 
     @PatchMapping("/{id}")
@@ -94,23 +121,22 @@ public class WordController {
             @Valid @RequestBody WordUpdateRequestDto request,
             HttpServletRequest httpRequest) {
 
-        // 1. 명세서 400 에러: 아무것도 변경하지 않는 빈 요청 필터링
+        // 1. 빈 요청 필터링
         if (request.isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ApiResponse<>(false, "수정할 항목을 최소 1개 이상 입력해주세요.", null));
         }
 
-        // 2. 명세서 401 에러: 인증(로그인) 확인
+        // 2. 인증 확인
         HttpSession session = httpRequest.getSession(false);
         if (session == null || session.getAttribute("LOGIN_USER_ID") == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ApiResponse<>(false, "로그인이 필요한 서비스입니다.", null));
         }
 
-        // 3. 명세서 403 에러: ADMIN 권한 확인
+        // 3. ADMIN 권한 확인
         Object roleObj = session.getAttribute("LOGIN_USER_ROLE");
         String role = roleObj != null ? roleObj.toString() : "";
-
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, "관리자 접근 권한이 없습니다.", null));
@@ -119,7 +145,6 @@ public class WordController {
         // 4. 비즈니스 로직 실행
         WordResponseDto data = wordService.updateWord(id, request);
 
-        // 5. 명세서 200 OK 응답 반환
         return ResponseEntity.ok(new ApiResponse<>(true, "단어가 수정되었습니다.", data));
     }
 
@@ -128,26 +153,24 @@ public class WordController {
             @PathVariable Long id,
             HttpServletRequest httpRequest) {
 
-        // 1. 명세서 401 에러: 인증(로그인) 확인
+        // 1. 인증 확인
         HttpSession session = httpRequest.getSession(false);
         if (session == null || session.getAttribute("LOGIN_USER_ID") == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ApiResponse<>(false, "로그인이 필요한 서비스입니다.", null));
         }
 
-        // 2. 명세서 403 에러: ADMIN 권한 확인
+        // 2. ADMIN 권한 확인
         Object roleObj = session.getAttribute("LOGIN_USER_ROLE");
         String role = roleObj != null ? roleObj.toString() : "";
-
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, "관리자 접근 권한이 없습니다.", null));
         }
 
-        // 3. 비즈니스 로직(삭제) 실행
+        // 3. 비즈니스 로직 실행
         wordService.deleteWord(id);
 
-        // 4. 명세서 200 OK 응답 반환
         return ResponseEntity.ok(new ApiResponse<>(true, "단어가 삭제되었습니다.", null));
     }
 
@@ -158,21 +181,20 @@ public class WordController {
             @RequestParam(defaultValue = "id,asc") String sort,
             HttpServletRequest httpRequest) {
 
-        // 1. 명세서 401 에러: 인증(로그인) 확인
+        // 1. 인증 확인
         HttpSession session = httpRequest.getSession(false);
         if (session == null || session.getAttribute("LOGIN_USER_ID") == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ApiResponse<>(false, "로그인이 필요한 서비스입니다.", null));
         }
 
-        // 2. 세션에서 현재 로그인한 유저 ID 꺼내기 (추후 isMemorized 조회용)
+        // 2. userId 추출
         Object userIdObj = session.getAttribute("LOGIN_USER_ID");
         Long userId = Long.valueOf(userIdObj.toString());
 
-        // 3. 비즈니스 로직 실행 (권한 검사 생략 - USER, ADMIN 모두 가능)
+        // 3. 비즈니스 로직 실행
         WordListResponseDto data = wordService.getWordList(page, size, sort, userId);
 
-        // 4. 명세서 200 OK 응답 반환
         return ResponseEntity.ok(new ApiResponse<>(true, "단어 목록 조회 성공", data));
     }
 
@@ -181,21 +203,20 @@ public class WordController {
             @PathVariable Long id,
             HttpServletRequest httpRequest) {
 
-        // 1. 명세서 401 에러: 인증(로그인) 확인
+        // 1. 인증 확인
         HttpSession session = httpRequest.getSession(false);
         if (session == null || session.getAttribute("LOGIN_USER_ID") == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ApiResponse<>(false, "로그인이 필요한 서비스입니다.", null));
         }
 
-        // 2. 세션에서 로그인한 유저 ID 꺼내기
+        // 2. userId 추출
         Object userIdObj = session.getAttribute("LOGIN_USER_ID");
         Long userId = Long.valueOf(userIdObj.toString());
 
         // 3. 비즈니스 로직 실행
         WordDetailResponseDto data = wordService.getWordDetail(id, userId);
 
-        // 4. 명세서 200 OK 응답 반환
         return ResponseEntity.ok(new ApiResponse<>(true, "단어 상세 조회 성공", data));
     }
 }
