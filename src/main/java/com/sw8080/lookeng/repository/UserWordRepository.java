@@ -11,4 +11,5 @@ public interface UserWordRepository extends JpaRepository<UserWord, Long> {
     List<UserWord> findByUserIdAndIsBookmarkedTrue(Long userId);
     List<UserWord> findByUserIdAndIsMemorizedTrue(Long userId);
     List<UserWord> findByUserIdAndWordIdIn(Long userId, List<Long> wordIds);
+    long countByUserIdAndIsMemorizedTrue(Long userId);
 }
