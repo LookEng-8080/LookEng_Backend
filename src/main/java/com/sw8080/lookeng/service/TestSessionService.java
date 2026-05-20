@@ -222,7 +222,7 @@ public class TestSessionService {
                     .wordId(word.getId())
                     .korean(word.getKorean())
                     .partOfSpeech(word.getPartOfSpeech())
-                    .exampleSentence(word.getExampleSentence())
+                    .exampleSentence(maskWord(word.getEnglish(), word.getExampleSentence()))
                     .build();
         };
     }
@@ -260,6 +260,12 @@ public class TestSessionService {
     private String blankSentence(String english, String exampleSentence) {
         return exampleSentence.replaceAll(
                 "(?i)\\b" + Pattern.quote(english) + "\\b", "_____");
+    }
+
+    private String maskWord(String english, String exampleSentence) {
+        if (exampleSentence == null) return null;
+        String mask = "_".repeat(english.length());
+        return exampleSentence.replaceAll("(?i)\\b" + Pattern.quote(english) + "\\b", mask);
     }
 
     @Transactional(readOnly = true)
