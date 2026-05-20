@@ -26,6 +26,9 @@ spring:
 lookeng:
   admin:
     secret-code: "LOOKENG_SECRET_777"
+  oauth2:
+    google:
+      client-id: "718119868998-f1okpb4888sjbq49836ic661jbn3p0tq.apps.googleusercontent.com"
 
 ---
 spring:
@@ -34,7 +37,7 @@ spring:
       on-profile: dev
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
     show-sql: true
   servlet:
     multipart:
@@ -45,7 +48,7 @@ server:
   servlet:
     session:
       cookie:
-        same-site: none
+        same-site: lax
         secure: false
 
 logging:
