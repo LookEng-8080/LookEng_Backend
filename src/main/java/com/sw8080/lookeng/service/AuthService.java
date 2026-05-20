@@ -1,15 +1,17 @@
 package com.sw8080.lookeng.service;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import com.sw8080.lookeng.Role;
-import com.sw8080.lookeng.dto.request.AdminSignupRequestDto;
-import com.sw8080.lookeng.dto.request.PasswordResetRequestDto;
+import com.sw8080.lookeng.dto.request.*;
 import com.sw8080.lookeng.dto.response.AdminSignupResponseDto;
+import com.sw8080.lookeng.dto.response.SocialLoginResponseDto;
 import com.sw8080.lookeng.entity.PasswordResetToken;
 import com.sw8080.lookeng.exception.DuplicateException;
 import com.sw8080.lookeng.exception.NotFoundException;
 import com.sw8080.lookeng.exception.UnauthorizedException;
-import com.sw8080.lookeng.dto.request.LoginRequestDto;
-import com.sw8080.lookeng.dto.request.SignupRequestDto;
 import com.sw8080.lookeng.dto.response.LoginResponseDto;
 import com.sw8080.lookeng.dto.response.SignupResponseDto;
 import com.sw8080.lookeng.entity.User;
@@ -25,6 +27,7 @@ import com.sw8080.lookeng.exception.ForbiddenException;
 import org.springframework.mail.SimpleMailMessage;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.UUID;
 
 @Service
@@ -38,6 +41,9 @@ public class AuthService {
 
     @Value("${lookeng.admin.secret-code}")
     private String adminSecretCode;
+
+    @Value("${lookeng.oauth2.google.client-id}")
+    private String googleClientId;
 
     @Transactional
     public SignupResponseDto signup(SignupRequestDto request) {
@@ -194,4 +200,59 @@ public class AuthService {
         // 5. 토큰 사용 완료 처리 (다시 못 쓰게)
         resetToken.useToken();
     }
+
+    @Transactional
+    public SocialLoginResponseDto socialLogin(SocialLoginRequestDto request) {
+        try {
+            // 1. 구글 토큰 검증기 설정
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                    .setAudience(Collections.singletonList(googleClientId))
+                    .build();
+
+            // 2. idToken 검증
+            GoogleIdToken idToken = verifier.verify(request.getIdToken());
+            if (idToken == null) {
+                throw new UnauthorizedException("유효하지 않거나 만료된 구글 토큰입니다.");
+            }
+
+            // 3. 페이로드에서 유저 정보 추출
+            GoogleIdToken.Payload payload = idToken.getPayload();
+            String email = payload.getEmail();
+            String name = (String) payload.get("name");
+            String subject = payload.getSubject(); // 구글 고유 식별자
+
+            boolean isNewUser = false;
+
+            // 4. 기존 회원 조회
+            User user = userRepository.findByEmail(email).orElse(null);
+
+            // 5. 최초 로그인 시 자동 회원가입
+            if (user == null) {
+                isNewUser = true;
+                user = User.builder()
+                        .email(email)
+                        .nickname(name != null ? name : "구글유저")
+                        .role(Role.USER)
+                        .passwordHash(UUID.randomUUID().toString()) // 소셜 로그인이므로 임의의 난수 사용
+                        .socialProvider("GOOGLE")
+                        .socialId(subject)
+                        .build();
+                user = userRepository.save(user);
+            }
+
+            // 6. 응답 DTO 반환
+            return SocialLoginResponseDto.builder()
+                    .userId(user.getId())
+                    .email(user.getEmail())
+                    .nickname(user.getNickname())
+                    .role(user.getRole().name())
+                    .isNewUser(isNewUser)
+                    .build();
+
+        } catch (Exception e) {
+            throw new UnauthorizedException("구글 토큰 검증 중 오류가 발생했습니다.");
+        }
+    }
+
+
 }

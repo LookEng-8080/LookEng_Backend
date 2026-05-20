@@ -2,16 +2,10 @@ package com.sw8080.lookeng.controller;
 
 import com.sw8080.lookeng.ApiResponse;
 import com.sw8080.lookeng.Role;
-import com.sw8080.lookeng.dto.request.AdminSignupRequestDto;
-import com.sw8080.lookeng.dto.request.PasswordResetRequestDto;
-import com.sw8080.lookeng.dto.response.AdminSignupResponseDto;
+import com.sw8080.lookeng.dto.request.*;
+import com.sw8080.lookeng.dto.response.*;
 import com.sw8080.lookeng.exception.ForbiddenException;
 import com.sw8080.lookeng.exception.UnauthorizedException;
-import com.sw8080.lookeng.dto.request.LoginRequestDto;
-import com.sw8080.lookeng.dto.request.SignupRequestDto;
-import com.sw8080.lookeng.dto.response.CommonResponse;
-import com.sw8080.lookeng.dto.response.LoginResponseDto;
-import com.sw8080.lookeng.dto.response.SignupResponseDto;
 import com.sw8080.lookeng.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -115,10 +109,8 @@ public class AuthController {
     public ResponseEntity<CommonResponse<Void>> requestPasswordReset(
             @Valid @RequestBody PasswordResetRequestDto request) {
 
-        // AuthService한테 일 시키기
         authService.requestPasswordReset(request);
 
-        // 결과 응답하기
         return ResponseEntity.ok(
                 new CommonResponse<>(true, "비밀번호 재설정 인증번호가 이메일로 발송되었습니다.", null)
         );
@@ -135,6 +127,24 @@ public class AuthController {
         return ResponseEntity.ok(
                 new CommonResponse<>(true, "비밀번호가 성공적으로 변경되었습니다.", null)
         );
+    }
+
+    @PostMapping("/social")
+    public ResponseEntity<CommonResponse<SocialLoginResponseDto>> socialLogin(
+            @Valid @RequestBody SocialLoginRequestDto request,
+            HttpServletRequest httpRequest) {
+
+        // 1. 소셜 로그인 로직 실행
+        SocialLoginResponseDto response = authService.socialLogin(request);
+
+        // 2. 세션 생성 및 유저 식별자 저장
+        HttpSession session = httpRequest.getSession(true);
+        session.setAttribute("LOGIN_USER_ID", response.getUserId());
+        session.setAttribute("LOGIN_USER_ROLE", response.getRole());
+        session.setMaxInactiveInterval(1800); // 세션 만료 30분
+
+        // 3. 200 OK 응답 반환
+        return ResponseEntity.ok(new CommonResponse<>(true, "구글 소셜 로그인 성공", response));
     }
 
 }
