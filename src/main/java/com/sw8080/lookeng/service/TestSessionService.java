@@ -25,8 +25,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,20 +41,34 @@ public class TestSessionService {
     private final TestAnswerRepository testAnswerRepository;
 
     public TestSessionResponseDto startSession(Long userId, TestSessionRequestDto request) {
-        // 1. 전체 단어 중 랜덤으로 n개 추출
+        // 1. totalCount 유효성 검사
         if (request.getTotalCount() <= 0 || request.getTotalCount() > 50) {
             throw new BadRequestException("개수가 잘못되었습니다. (1~50 사이로 입력해주세요)");
         }
 
         List<Word> allWords = wordRepository.findAll();
-        if (allWords.size() < request.getTotalCount()) {
-            throw new BadRequestException("전체 단어 수가 요청한 수보다 적습니다.");
+
+        // 2. FILL_IN_BLANK: 예문 있는 단어만 출제 가능
+        List<Word> candidateWords;
+        if (request.getQuizType() == com.sw8080.lookeng.entity.QuizType.FILL_IN_BLANK) {
+            candidateWords = allWords.stream()
+                    .filter(w -> w.getExampleSentence() != null && !w.getExampleSentence().isBlank())
+                    .collect(Collectors.toList());
+            if (candidateWords.size() < request.getTotalCount()) {
+                throw new BadRequestException("예문이 있는 단어 수가 요청한 수보다 적습니다.");
+            }
+        } else {
+            candidateWords = allWords;
+            if (candidateWords.size() < request.getTotalCount()) {
+                throw new BadRequestException("전체 단어 수가 요청한 수보다 적습니다.");
+            }
         }
 
-        Collections.shuffle(allWords);
-        List<Word> selectedWords = allWords.subList(0, request.getTotalCount());
+        // 3. 랜덤 추출
+        Collections.shuffle(candidateWords);
+        List<Word> selectedWords = new ArrayList<>(candidateWords.subList(0, request.getTotalCount()));
 
-        // 2. 세션 생성 및 저장
+        // 4. 세션 생성 및 저장
         TestSession session = TestSession.builder()
                 .userId(userId)
                 .quizType(request.getQuizType())
@@ -62,19 +79,14 @@ public class TestSessionService {
 
         testSessionRepository.save(session);
 
-        // 3. 첫 번째 문제 정보 조립
+        // 5. 첫 번째 문제 조립
         Word firstWord = selectedWords.get(0);
         return TestSessionResponseDto.builder()
                 .sessionId(session.getId())
                 .quizType(session.getQuizType())
                 .totalCount(session.getTotalCount())
                 .currentIndex(0)
-                .question(TestSessionResponseDto.QuestionDto.builder()
-                        .wordId(firstWord.getId())
-                        .korean(firstWord.getKorean())
-                        .partOfSpeech(firstWord.getPartOfSpeech())
-                        .exampleSentence(firstWord.getExampleSentence())
-                        .build())
+                .question(buildQuestionDto(firstWord, session.getQuizType(), selectedWords))
                 .build();
     }
     @Transactional
@@ -123,12 +135,7 @@ public class TestSessionService {
 
         if (!isFinished) {
             Word nextWord = session.getWords().get(session.getCurrentIndex());
-            nextQuestion = TestSessionResponseDto.QuestionDto.builder()
-                    .wordId(nextWord.getId())
-                    .korean(nextWord.getKorean())
-                    .partOfSpeech(nextWord.getPartOfSpeech())
-                    .exampleSentence(nextWord.getExampleSentence())
-                    .build();
+            nextQuestion = buildQuestionDto(nextWord, session.getQuizType(), session.getWords());
         }
 
         // 7. 응답 조립
@@ -196,6 +203,65 @@ public class TestSessionService {
                 .wrongWords(wrongWords)
                 .build();
     }
+    private TestSessionResponseDto.QuestionDto buildQuestionDto(
+            Word word, com.sw8080.lookeng.entity.QuizType quizType, List<Word> pool) {
+
+        return switch (quizType) {
+            case MULTIPLE_CHOICE -> TestSessionResponseDto.QuestionDto.builder()
+                    .wordId(word.getId())
+                    .korean(word.getKorean())
+                    .partOfSpeech(word.getPartOfSpeech())
+                    .choices(generateChoices(word, pool))
+                    .build();
+            case FILL_IN_BLANK -> TestSessionResponseDto.QuestionDto.builder()
+                    .wordId(word.getId())
+                    .sentence(blankSentence(word.getEnglish(), word.getExampleSentence()))
+                    .choices(generateChoices(word, pool))
+                    .build();
+            default -> TestSessionResponseDto.QuestionDto.builder()
+                    .wordId(word.getId())
+                    .korean(word.getKorean())
+                    .partOfSpeech(word.getPartOfSpeech())
+                    .exampleSentence(word.getExampleSentence())
+                    .build();
+        };
+    }
+
+    private List<String> generateChoices(Word correct, List<Word> pool) {
+        // 1. 풀에서 정답 제외한 오답 후보 목록 구성
+        List<String> distractors = pool.stream()
+                .filter(w -> !w.getId().equals(correct.getId()))
+                .map(Word::getEnglish)
+                .collect(Collectors.toList());
+        Collections.shuffle(distractors);
+
+        // 2. 오답이 3개 미만이면 DB 전체에서 보충
+        if (distractors.size() < 3) {
+            List<String> allEnglish = wordRepository.findAll().stream()
+                    .filter(w -> !w.getId().equals(correct.getId()))
+                    .map(Word::getEnglish)
+                    .collect(Collectors.toList());
+            Collections.shuffle(allEnglish);
+            for (String e : allEnglish) {
+                if (!distractors.contains(e)) {
+                    distractors.add(e);
+                }
+                if (distractors.size() == 3) break;
+            }
+        }
+
+        // 3. 정답 포함 4지선다 조합 후 셔플
+        List<String> choices = new ArrayList<>(distractors.subList(0, Math.min(3, distractors.size())));
+        choices.add(correct.getEnglish());
+        Collections.shuffle(choices);
+        return choices;
+    }
+
+    private String blankSentence(String english, String exampleSentence) {
+        return exampleSentence.replaceAll(
+                "(?i)\\b" + Pattern.quote(english) + "\\b", "_____");
+    }
+
     @Transactional(readOnly = true)
     public TestHistoryResponseDto getTestHistory(Long userId, int page, int size) {
 
