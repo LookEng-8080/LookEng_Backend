@@ -292,8 +292,8 @@ public class TestSessionService {
         // 1. 페이지네이션 및 정렬 설정: "생성일(createdAt) 기준 내림차순(최신순)"
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        // 2. DB에서 유저의 테스트 세션 목록 조회
-        Page<TestSession> sessionPage = testSessionRepository.findByUserId(userId, pageable);
+        // 2. DB에서 유저의 완료된 테스트 세션 목록 조회 (finished=true)
+        Page<TestSession> sessionPage = testSessionRepository.findByUserIdAndFinished(userId, true, pageable);
 
         // 3. Entity -> DTO 변환 및 정답률(accuracy) 계산
         List<TestHistoryItemDto> content = sessionPage.getContent().stream()
@@ -310,6 +310,7 @@ public class TestSessionService {
                             .accuracy(accuracy)
                             .durationSec(session.getDurationSec())
                             .startedAt(session.getCreatedAt()) // 테스트 시작 시간 = 세션 생성 시간
+                            .finished(session.isFinished())
                             .build();
                 })
                 .toList();

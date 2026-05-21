@@ -16,4 +16,5 @@ public class TestHistoryItemDto {
     private double accuracy;
     private int durationSec;
     private LocalDateTime startedAt;
+    private boolean finished;
 }

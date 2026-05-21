@@ -7,4 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TestSessionRepository extends JpaRepository<TestSession, Long> {
     Page<TestSession> findByUserId(Long userId, Pageable pageable);
+    Page<TestSession> findByUserIdAndFinished(Long userId, boolean finished, Pageable pageable);
 }
