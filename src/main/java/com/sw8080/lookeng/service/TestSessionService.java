@@ -10,6 +10,7 @@ import com.sw8080.lookeng.dto.request.TestSessionRequestDto;
 import com.sw8080.lookeng.dto.response.TestAnswerResponseDto;
 import com.sw8080.lookeng.dto.response.TestFinishResponseDto;
 import com.sw8080.lookeng.dto.response.TestHistoryResponseDto;
+import com.sw8080.lookeng.dto.response.TestSessionDetailResponseDto;
 import com.sw8080.lookeng.dto.response.TestSessionResponseDto;
 import com.sw8080.lookeng.entity.TestAnswer;
 import com.sw8080.lookeng.entity.TestSession;
@@ -260,6 +261,23 @@ public class TestSessionService {
     private String blankSentence(String english, String exampleSentence) {
         return exampleSentence.replaceAll(
                 "(?i)\\b" + Pattern.quote(english) + "\\b", "_____");
+    }
+
+    @Transactional(readOnly = true)
+    public TestSessionDetailResponseDto getSessionDetail(Long userId, Long sessionId) {
+        // 1. 세션 조회 (404)
+        TestSession session = testSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new NotFoundException("존재하지 않는 세션입니다."));
+
+        // 2. 소유자 확인 (403)
+        if (!session.getUserId().equals(userId)) {
+            throw new ForbiddenException("본인의 테스트 세션에만 접근할 수 있습니다.");
+        }
+
+        // 3. 답안 목록 조회 (제출 순서 기준)
+        List<TestAnswer> answers = testAnswerRepository.findByTestSessionIdOrderByIdAsc(sessionId);
+
+        return TestSessionDetailResponseDto.from(session, answers);
     }
 
     @Transactional(readOnly = true)
