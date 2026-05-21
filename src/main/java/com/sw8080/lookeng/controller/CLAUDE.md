@@ -40,6 +40,7 @@
 | POST | `/{sessionId}/answers` | 답안 제출 | O |
 | POST | `/{sessionId}/finish` | 테스트 종료 | O |
 | GET | `/` | 테스트 기록 조회 (페이지네이션) | O |
+| GET | `/{id}` | 테스트 세션 상세 조회 | O |
 
 ## 컨트롤러 공통 패턴
 

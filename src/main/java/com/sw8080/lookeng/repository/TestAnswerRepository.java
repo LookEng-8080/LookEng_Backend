@@ -10,6 +10,8 @@ import java.util.List;
 public interface TestAnswerRepository extends JpaRepository<TestAnswer, Long> {
     List<TestAnswer> findByTestSessionIdAndIsCorrectFalse(Long sessionId);
 
+    List<TestAnswer> findByTestSessionIdOrderByIdAsc(Long sessionId);
+
     @Query("SELECT COUNT(DISTINCT ta.word.id) FROM TestAnswer ta " +
             "JOIN ta.testSession ts " +
             "WHERE ts.userId = :userId AND ta.isCorrect = true")

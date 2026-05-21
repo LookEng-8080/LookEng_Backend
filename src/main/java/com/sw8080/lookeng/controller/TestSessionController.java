@@ -7,6 +7,7 @@ import com.sw8080.lookeng.dto.request.TestSessionRequestDto;
 import com.sw8080.lookeng.dto.response.TestAnswerResponseDto;
 import com.sw8080.lookeng.dto.response.TestFinishResponseDto;
 import com.sw8080.lookeng.dto.response.TestHistoryResponseDto;
+import com.sw8080.lookeng.dto.response.TestSessionDetailResponseDto;
 import com.sw8080.lookeng.dto.response.TestSessionResponseDto;
 import com.sw8080.lookeng.service.TestSessionService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -75,6 +76,24 @@ public class TestSessionController {
         TestFinishResponseDto data = testSessionService.finishSession(userId, sessionId, request);
         return ResponseEntity.ok(new ApiResponse<>(true, "테스트가 종료되었습니다.", data));
     }
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<TestSessionDetailResponseDto>> getSessionDetail(
+            @PathVariable Long id,
+            HttpServletRequest httpRequest) {
+
+        // 1. 로그인 확인 (401)
+        HttpSession session = httpRequest.getSession(false);
+        if (session == null || session.getAttribute("LOGIN_USER_ID") == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "로그인이 필요합니다.", null));
+        }
+
+        Long userId = (Long) session.getAttribute("LOGIN_USER_ID");
+        TestSessionDetailResponseDto data = testSessionService.getSessionDetail(userId, id);
+
+        return ResponseEntity.ok(new ApiResponse<>(true, "테스트 세션 조회를 성공했습니다.", data));
+    }
+
     @GetMapping
     public ResponseEntity<ApiResponse<TestHistoryResponseDto>> getTestHistory(
             @RequestParam(defaultValue = "0") int page,
