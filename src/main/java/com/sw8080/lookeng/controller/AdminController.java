@@ -2,6 +2,7 @@ package com.sw8080.lookeng.controller;
 
 import com.sw8080.lookeng.ApiResponse;
 import com.sw8080.lookeng.dto.response.TestHistoryResponseDto;
+import com.sw8080.lookeng.dto.response.TestSessionDetailResponseDto;
 import com.sw8080.lookeng.dto.response.UserListResponseDto;
 import com.sw8080.lookeng.exception.NotFoundException;
 import com.sw8080.lookeng.repository.UserRepository;
@@ -76,5 +77,30 @@ public class AdminController {
         // 4. 기존 서비스 재사용
         TestHistoryResponseDto data = testSessionService.getTestHistory(userId, page, size);
         return ResponseEntity.ok(new ApiResponse<>(true, "유저 테스트 기록 조회 성공", data));
+    }
+
+    @GetMapping("/test-sessions/{sessionId}")
+    public ResponseEntity<ApiResponse<TestSessionDetailResponseDto>> getTestSessionDetail(
+            @PathVariable Long sessionId,
+            HttpServletRequest httpRequest) {
+
+        // 1. 로그인 확인
+        HttpSession session = httpRequest.getSession(false);
+        if (session == null || session.getAttribute("LOGIN_USER_ID") == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "로그인이 필요합니다.", null));
+        }
+
+        // 2. ADMIN 권한 확인
+        Object roleObj = session.getAttribute("LOGIN_USER_ROLE");
+        String role = roleObj != null ? roleObj.toString() : "";
+        if (!"ADMIN".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "관리자 접근 권한이 없습니다.", null));
+        }
+
+        // 3. 소유자 확인 없이 세션 상세 조회
+        TestSessionDetailResponseDto data = testSessionService.getSessionDetailForAdmin(sessionId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "테스트 세션 상세 조회 성공", data));
     }
 }

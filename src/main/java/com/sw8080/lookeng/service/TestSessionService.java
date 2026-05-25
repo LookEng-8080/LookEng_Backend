@@ -287,6 +287,18 @@ public class TestSessionService {
     }
 
     @Transactional(readOnly = true)
+    public TestSessionDetailResponseDto getSessionDetailForAdmin(Long sessionId) {
+        // 1. 세션 조회 (404) — 소유자 확인 없이 관리자 전용
+        TestSession session = testSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new NotFoundException("존재하지 않는 세션입니다."));
+
+        // 2. 답안 목록 조회 (제출 순서 기준)
+        List<TestAnswer> answers = testAnswerRepository.findByTestSessionIdOrderByIdAsc(sessionId);
+
+        return TestSessionDetailResponseDto.from(session, answers);
+    }
+
+    @Transactional(readOnly = true)
     public TestHistoryResponseDto getTestHistory(Long userId, int page, int size) {
 
         // 1. 페이지네이션 및 정렬 설정: "생성일(createdAt) 기준 내림차순(최신순)"
